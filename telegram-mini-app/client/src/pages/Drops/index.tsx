@@ -1,6 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import './Drops.scss';
 import BottomNav from '../../components/common/BottomNav';
+import { useAuth } from '../../context/AuthContext';
+import { useDrops } from '../../hooks/useDrops';
+import Button from '../../components/common/Button';
 
 // Типы для дропов
 interface Drop {
@@ -68,150 +71,216 @@ const DropsPage: React.FC = () => {
     });
   }, [dropsList, activeFilter, sortDirection]);
   
+  // Получаем данные пользователя
+  const { user } = useAuth();
+  
+  // Получаем данные о дропах
+  const { 
+    drops, 
+    stats,
+    isLoading, 
+    error,
+    inviteLink,
+    generateInviteLink,
+    upgradeUserDrop
+  } = useDrops();
+  
+  // Состояние для уведомлений
+  const [notification, setNotification] = useState<{
+    show: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({
+    show: false,
+    message: '',
+    type: 'info'
+  });
+
+  // Генерация ссылки для приглашения
+  const handleGenerateInviteLink = async () => {
+    try {
+      const link = await generateInviteLink();
+      
+      // Показываем ссылку пользователю
+      setNotification({
+        show: true,
+        message: `Ссылка создана: ${link}`,
+        type: 'success'
+      });
+      
+      // Копируем ссылку в буфер обмена
+      navigator.clipboard.writeText(link).then(() => {
+        console.log('Ссылка скопирована в буфер обмена');
+      }).catch(err => {
+        console.error('Не удалось скопировать ссылку:', err);
+      });
+      
+      // Скрываем уведомление через 5 секунд
+      setTimeout(() => {
+        setNotification(prev => ({ ...prev, show: false }));
+      }, 5000);
+    } catch (error) {
+      console.error('Error generating invite link:', error);
+      setNotification({
+        show: true,
+        message: 'Не удалось создать ссылку',
+        type: 'error'
+      });
+      
+      // Скрываем уведомление через 3 секунды
+      setTimeout(() => {
+        setNotification(prev => ({ ...prev, show: false }));
+      }, 3000);
+    }
+  };
+  
+  // Функция улучшения дропа
+  const handleUpgradeDrop = async (dropId: string) => {
+    try {
+      const success = await upgradeUserDrop(dropId);
+      
+      if (success) {
+        setNotification({
+          show: true,
+          message: 'Дроп успешно улучшен!',
+          type: 'success'
+        });
+        
+        // Скрываем уведомление через 3 секунды
+        setTimeout(() => {
+          setNotification(prev => ({ ...prev, show: false }));
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Error upgrading drop:', error);
+      setNotification({
+        show: true,
+        message: 'Не удалось улучшить дроп',
+        type: 'error'
+      });
+      
+      // Скрываем уведомление через 3 секунды
+      setTimeout(() => {
+        setNotification(prev => ({ ...prev, show: false }));
+      }, 3000);
+    }
+  };
+
+  // Функция для отображения качества дропа
+  const getDropQualityLabel = (quality: string): string => {
+    switch (quality) {
+      case 'common': return 'Обычный';
+      case 'rare': return 'Редкий';
+      case 'epic': return 'Эпический';
+      case 'legendary': return 'Легендарный';
+      default: return quality;
+    }
+  };
+
+  // Функция для получения дохода от дропа
+  const getDropIncome = (drop: any): number => {
+    return drop.income_per_hour * drop.income_multiplier;
+  };
+
   return (
     <div className="drops-page">
-      <div className="drops-page__header">
-        <h1>Дропы</h1>
-        <div className="drops-page__balance">
-          Баланс: <span>10,450₽</span>
+      {/* Показываем уведомление, если оно активно */}
+      {notification.show && (
+        <div className={`notification notification--${notification.type}`}>
+          {notification.message}
+        </div>
+      )}
+      
+      {/* Показываем баланс пользователя */}
+      <div className="drops-page__balance">
+        <h2>{user ? user.balance.toLocaleString() : '0'} монет</h2>
+      </div>
+      
+      {/* Показываем статус загрузки или ошибку */}
+      {isLoading && <div className="loading">Загрузка дропов...</div>}
+      {error && <div className="error">{error}</div>}
+      
+      {/* Статистика дропов */}
+      <div className="drops-stats">
+        <div className="drops-stats__item">
+          <h3>Всего дропов</h3>
+          <p>{stats?.total || 0}</p>
+        </div>
+        <div className="drops-stats__item">
+          <h3>Активные дропы</h3>
+          <p>{stats?.active || 0}</p>
+        </div>
+        <div className="drops-stats__item">
+          <h3>Потеряно за 24ч</h3>
+          <p>{stats?.lost_24h || 0}</p>
+        </div>
+        <div className="drops-stats__item">
+          <h3>Доход в час</h3>
+          <p>{stats?.income_per_hour || 0}</p>
         </div>
       </div>
-
-      {/* Статистика */}
-      <div className="drops-page__stats">
-        <div className="drops-page__stats-row">
-          <div className="drops-page__stat-item">
-            <div className="drops-page__stat-value">24</div>
-            <div className="drops-page__stat-label">Всего</div>
-          </div>
-          <div className="drops-page__stat-item drops-page__stat-item--warning">
-            <div className="drops-page__stat-value">3</div>
-            <div className="drops-page__stat-label">Потеряно (24ч)</div>
-          </div>
-        </div>
-        <div className="drops-page__stats-row">
-          <div className="drops-page__stat-item drops-page__stat-item--income">
-            <div className="drops-page__stat-value">1,240₽</div>
-            <div className="drops-page__stat-label">Доход/час</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Табы */}
-      <div className="drops-page__tabs">
-        <button 
-          className={`drops-page__tab ${activeTab === 'info' ? 'active' : ''}`}
-          onClick={() => setActiveTab('info')}
+      
+      {/* Кнопка для создания пригласительной ссылки */}
+      <div className="drops-page__actions">
+        <Button 
+          variant="primary"
+          fullWidth
+          onClick={handleGenerateInviteLink}
+          disabled={isLoading}
         >
-          Информация
-        </button>
-        <button 
-          className={`drops-page__tab ${activeTab === 'drops' ? 'active' : ''}`}
-          onClick={() => setActiveTab('drops')}
-        >
-          Мои дропы
-        </button>
-      </div>
-
-      {/* Содержимое табов */}
-      {activeTab === 'info' ? (
-        <div className="drops-page__info-content">
-          <article className="drops-page__article">
-            <h2>О дропах</h2>
-            <p className="drops-page__article-intro">
-              Дропы — приглашённые вами пользователи, которые приносят пассивный доход.
-            </p>
-
-            <h3>Как это работает</h3>
-            <p>
-              Каждый приглашённый друг становится вашим дропом и приносит базовый доход 10₽ в час. 
-              Чем выше уровень и качество дропа, тем больше прибыли вы получаете.
-            </p>
-
-            <h3>Уровни дропов</h3>
-            <div className="drops-page__levels">
-              {dropTypes.map((type) => (
-                <div key={type.level} className="drops-page__level-item">
-                  <div className="drops-page__level-badge">{type.level}</div>
-                  <div className="drops-page__level-income">
-                    {calculateIncome(type.baseIncome, type.level, type.multiplier)}₽/ч
-                  </div>
-                  <div className="drops-page__level-multi">×{type.multiplier}</div>
-                </div>
-              ))}
+          Создать пригласительную ссылку
+        </Button>
+        
+        {/* Показываем текущую ссылку, если она есть */}
+        {inviteLink && (
+          <div className="invite-link">
+            <p>Текущая ссылка:</p>
+            <div className="invite-link__box" onClick={() => navigator.clipboard.writeText(inviteLink)}>
+              {inviteLink}
+              <span className="copy-icon">📋</span>
             </div>
-
-            <div className="drops-page__formula">
-              Доход = 10₽ × Уровень × Множитель
-            </div>
-
-            <h3>Как приглашать друзей</h3>
-            <p>
-              Просто поделитесь ссылкой и получайте доход от каждого приглашённого друга.
-            </p>
-
-            <div className="drops-page__invite-button">
-              <button className="button button--accent">Пригласить</button>
-            </div>
-
-            <h3>Советы</h3>
-            <ul className="drops-page__tips-list">
-              <li>Проверяйте дропы ежедневно, чтобы видеть их активность</li>
-              <li>Чем больше дропов, тем выше ваш пассивный доход</li>
-              <li>Пользователи становятся неактивными, если не заходят в игру 24 часа</li>
-              <li>Дроп повышает свой уровень по мере активности в игре</li>
-            </ul>
-          </article>
-        </div>
-      ) : (
-        <div className="drops-page__drops-list">
-          {/* Фильтр дропов */}
-          <div className="drops-page__filter">
-            <button 
-              className={`drops-page__filter-btn ${activeFilter === 'all' ? 'active' : ''}`}
-              onClick={() => handleFilterChange('all')}
-            >
-              Все
-            </button>
-            <button 
-              className={`drops-page__filter-btn ${activeFilter === 'level' ? 'active' : ''}`}
-              onClick={() => handleFilterChange('level')}
-            >
-              Уровень {activeFilter === 'level' && (sortDirection === 'asc' ? '↑' : '↓')}
-            </button>
-            <button 
-              className={`drops-page__filter-btn ${activeFilter === 'income' ? 'active' : ''}`}
-              onClick={() => handleFilterChange('income')}
-            >
-              Доход {activeFilter === 'income' && (sortDirection === 'asc' ? '↑' : '↓')}
-            </button>
           </div>
-          
-          {/* Карточки дропов */}
-          {sortedDrops.length > 0 ? (
-            sortedDrops.map(drop => (
-              <div className="drop-card" key={drop.id}>
-                <div className="drop-card__info">
-                  <div className="drop-card__name">{drop.name}</div>
-                  <div className="drop-card__stats">
-                    <div className="drop-card__level">LVL {drop.level}</div>
-                    <div className="drop-card__income">{drop.income}₽/ч</div>
-                  </div>
-                  <div className="drop-card__date">С {drop.date}</div>
+        )}
+      </div>
+      
+      {/* Список дропов */}
+      <div className="drops-page__section">
+        <h2>Ваши дропы</h2>
+        
+        <div className="drops-list">
+          {drops.length > 0 ? (
+            drops.map(drop => (
+              <div key={drop.drop_id} className={`drop-card drop-card--${drop.quality}`}>
+                <div className="drop-card__header">
+                  <h3>{getDropQualityLabel(drop.quality)}</h3>
+                  <span className="drop-level">Уровень {drop.level}</span>
                 </div>
-                <div className="drop-card__actions">
-                  <button className="button button--small button--outline">Детали</button>
+                
+                <div className="drop-card__body">
+                  <p>Доход: {getDropIncome(drop)} / час</p>
+                  <p>ID: {drop.invitee_id.substring(0, 8)}...</p>
+                  <p>Создан: {new Date(drop.created_at).toLocaleDateString()}</p>
+                </div>
+                
+                <div className="drop-card__footer">
+                  <Button 
+                    variant="accent"
+                    onClick={() => handleUpgradeDrop(drop.drop_id)}
+                    disabled={!user || user.balance < Math.floor(100 * Math.pow(1.5, drop.level))}
+                  >
+                    Улучшить ({Math.floor(100 * Math.pow(1.5, drop.level))} монет)
+                  </Button>
                 </div>
               </div>
             ))
           ) : (
-            <div className="drops-page__empty">
+            <div className="drops-empty">
               <p>У вас пока нет дропов</p>
-              <button className="button button--accent">Пригласить друзей</button>
+              <p>Создайте пригласительную ссылку и отправьте друзьям, чтобы получить дропы</p>
             </div>
           )}
         </div>
-      )}
+      </div>
       
       {/* Нижнее меню навигации */}
       <BottomNav />

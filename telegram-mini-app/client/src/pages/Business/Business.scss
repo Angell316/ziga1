@@ -23,13 +23,20 @@
   }
   
   &__balance {
-    font-size: $font-size-sm;
-    color: $text-secondary;
+    text-align: right;
     
-    span {
-      color: $accent-color;
-      font-weight: 600;
+    h2 {
+      margin: 0;
+      font-size: $font-size-lg;
+      font-weight: 700;
     }
+  }
+  
+  &__income {
+    font-size: $font-size-sm;
+    color: $accent-color;
+    margin-top: 4px;
+    font-weight: 500;
   }
   
   &__content {

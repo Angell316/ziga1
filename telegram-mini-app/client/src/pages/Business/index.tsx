@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './Business.scss';
 
 // Components
@@ -14,6 +14,8 @@ import { Business, AvailableBusiness, BusinessType } from '../../types/business'
 
 // Context
 import { useGame } from '../../context/GameContext';
+import { useAuth } from '../../context/AuthContext';
+import { useBusinesses } from '../../hooks/useBusinesses';
 
 const BusinessPage: React.FC = () => {
   // Получаем данные и методы из GameContext
@@ -26,6 +28,19 @@ const BusinessPage: React.FC = () => {
     setAvailableBusinesses
   } = useGame();
 
+  // Получаем данные пользователя
+  const { user } = useAuth();
+  
+  // Получаем данные о бизнесах
+  const { 
+    businesses, 
+    availableBusinesses: apiAvailableBusinesses,
+    isLoading, 
+    error,
+    purchaseNewBusiness,
+    upgradeExistingBusiness
+  } = useBusinesses();
+
   // Состояния для фильтрации и сортировки
   const [activeTab, setActiveTab] = useState<'owned' | 'available'>('owned');
   const [businessType, setBusinessType] = useState<BusinessType | 'all'>('all');
@@ -35,6 +50,24 @@ const BusinessPage: React.FC = () => {
   const [upgradeModal, setUpgradeModal] = useState<{ visible: boolean, business?: Business }>({
     visible: false
   });
+  
+  // Состояние для уведомлений
+  const [notification, setNotification] = useState<{
+    show: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({
+    show: false,
+    message: '',
+    type: 'info'
+  });
+  
+  // Состояние для отслеживания балнаса в реальном времени
+  const [realTimeBalance, setRealTimeBalance] = useState<number>(balance);
+  
+  // Расчет дохода в час от всех бизнесов
+  const totalIncomePerHour = ownedBusinesses.reduce((sum, business) => sum + business.income_per_hour, 0);
+  const incomePerSecond = totalIncomePerHour / 3600;
   
   // При первой загрузке компонента заполняем доступные бизнесы, если список пуст
   useEffect(() => {
@@ -204,6 +237,21 @@ const BusinessPage: React.FC = () => {
     }
   }, [availableBusinesses.length, setAvailableBusinesses]);
   
+  // Обновляем баланс в реальном времени
+  useEffect(() => {
+    // Устанавливаем начальный баланс из контекста при первой загрузке
+    setRealTimeBalance(balance);
+    
+    // Обновляем баланс каждую секунду
+    const intervalId = setInterval(() => {
+      // Увеличиваем баланс на 1/3600 часть часового дохода каждую секунду
+      const incomePerSecond = totalIncomePerHour / 3600;
+      setRealTimeBalance(prevBalance => prevBalance + incomePerSecond);
+    }, 1000);
+    
+    return () => clearInterval(intervalId);
+  }, [balance, totalIncomePerHour]);
+  
   // Фильтрация бизнесов по типу
   const filteredOwnedBusinesses = ownedBusinesses.filter(business => 
     businessType === 'all' ? true : business.type === businessType
@@ -239,24 +287,34 @@ const BusinessPage: React.FC = () => {
   });
   
   // Обработчики действий с бизнесами
-  const handleUpgradeBusiness = (business: Business) => {
-    if (balance >= business.upgrade_cost) {
-      // Улучшаем бизнес
-      const updatedBusinesses = ownedBusinesses.map(b => {
-        if (b.business_id === business.business_id) {
-          return {
-            ...b,
-            level: b.level + 1,
-            income_per_hour: Math.round(b.income_per_hour * 1.2), // +20% к доходу
-            upgrade_cost: Math.round(b.upgrade_cost * 1.5) // +50% к стоимости улучшения
-          };
-        }
-        return b;
+  const handleUpgradeBusiness = async (business: Business) => {
+    try {
+      const success = await upgradeExistingBusiness(business.business_id);
+      
+      if (success) {
+        setNotification({
+          show: true,
+          message: 'Бизнес успешно улучшен!',
+          type: 'success'
+        });
+        
+        // Скрываем уведомление через 3 секунды
+        setTimeout(() => {
+          setNotification(prev => ({ ...prev, show: false }));
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Error upgrading business:', error);
+      setNotification({
+        show: true,
+        message: 'Не удалось улучшить бизнес',
+        type: 'error'
       });
       
-      setOwnedBusinesses(updatedBusinesses);
-      setBalance(balance - business.upgrade_cost);
-      setUpgradeModal({ visible: false });
+      // Скрываем уведомление через 3 секунды
+      setTimeout(() => {
+        setNotification(prev => ({ ...prev, show: false }));
+      }, 3000);
     }
   };
   
@@ -281,12 +339,51 @@ const BusinessPage: React.FC = () => {
     }
   };
   
+  // Функция покупки бизнеса
+  const handlePurchaseBusiness = async (businessId: string) => {
+    try {
+      const success = await purchaseNewBusiness(businessId);
+      
+      if (success) {
+        setNotification({
+          show: true,
+          message: 'Бизнес успешно приобретен!',
+          type: 'success'
+        });
+        
+        // Скрываем уведомление через 3 секунды
+        setTimeout(() => {
+          setNotification(prev => ({ ...prev, show: false }));
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Error purchasing business:', error);
+      setNotification({
+        show: true,
+        message: 'Не удалось купить бизнес',
+        type: 'error'
+      });
+      
+      // Скрываем уведомление через 3 секунды
+      setTimeout(() => {
+        setNotification(prev => ({ ...prev, show: false }));
+      }, 3000);
+    }
+  };
+  
   return (
     <div className="business-page">
+      {/* Показываем уведомление, если оно активно */}
+      {notification.show && (
+        <div className={`notification notification--${notification.type}`}>
+          {notification.message}
+        </div>
+      )}
+      
       <div className="business-page__header">
         <h1>Бизнесы</h1>
         <div className="business-page__balance">
-          Баланс: <span>{balance}</span>
+          <h2>{realTimeBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })} монет</h2>
         </div>
       </div>
       

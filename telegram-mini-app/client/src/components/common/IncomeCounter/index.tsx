@@ -6,12 +6,16 @@ interface IncomeCounterProps {
 }
 
 const IncomeCounter: React.FC<IncomeCounterProps> = ({ incomePerHour }) => {
-  const [currentIncome, setCurrentIncome] = useState(0);
+  const [accumulatedIncome, setAccumulatedIncome] = useState(0);
+  // Рассчитываем доход в секунду
   const incomePerSecond = incomePerHour / 3600;
+  // Форматируем доход в секунду для отображения (округляем до 2 знаков)
+  const displayIncomePerSecond = incomePerSecond.toFixed(2);
 
   useEffect(() => {
+    // Обновляем накопленный доход каждую секунду
     const interval = setInterval(() => {
-      setCurrentIncome(prev => {
+      setAccumulatedIncome(prev => {
         const newIncome = prev + incomePerSecond;
         return parseFloat(newIncome.toFixed(2));
       });
@@ -23,8 +27,10 @@ const IncomeCounter: React.FC<IncomeCounterProps> = ({ incomePerHour }) => {
   return (
     <div className="income-counter">
       <div className="income-counter__title">Доход в реальном времени</div>
-      <div className="income-counter__value">+{currentIncome.toFixed(2)}</div>
-      <div className="income-counter__rate">{incomePerHour}/час</div>
+      <div className="income-counter__value">+{displayIncomePerSecond}</div>
+      <div className="income-counter__accumulated">
+        {incomePerHour} монет в час
+      </div>
     </div>
   );
 };

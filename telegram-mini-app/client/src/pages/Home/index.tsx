@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Home.scss';
 
@@ -11,20 +11,84 @@ import Icon from '../../components/common/Icon';
 
 // Context
 import { useGame } from '../../context/GameContext';
+import { useAuth } from '../../context/AuthContext';
+import { useBusinesses } from '../../hooks/useBusinesses';
+import { useDrops } from '../../hooks/useDrops';
+import { Business } from '../../types/business';
+import BusinessService from '../../api/business';
+
+// Интерфейс для уведомлений
+interface Notification {
+  show: boolean;
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  
+  // Состояние для уведомлений
+  const [notification, setNotification] = useState<Notification>({
+    show: false,
+    message: '',
+    type: 'info'
+  });
   
   // Используем GameContext вместо локального состояния
   const { 
     balance, 
     totalIncomePerHour, 
     ownedBusinesses,
-    getMostProfitableBusiness
+    getMostProfitableBusiness,
+    setBalance
   } = useGame();
+
+  // Пользователь и функции обновления
+  const { user, isAuthenticated, updateUser } = useAuth();
   
+  // Получаем данные о бизнесах
+  const { 
+    businesses, 
+    isLoading: businessesLoading, 
+    collectAllIncome 
+  } = useBusinesses();
+  
+  // Получаем данные о дропах
+  const { 
+    stats: dropsStats, 
+    isLoading: dropsLoading 
+  } = useDrops();
+
   // Получаем самый прибыльный бизнес
   const mostProfitableBusiness = getMostProfitableBusiness();
+
+  // Вычисляем общий доход в час (от бизнесов и дропов)
+  const totalIncome = useMemo(() => {
+    // Используем доход из GameContext
+    const businessIncome = totalIncomePerHour || 0;
+    // Добавляем доход от дропов, если он доступен
+    const dropIncome = dropsStats ? dropsStats.income_per_hour : 0;
+    return businessIncome + dropIncome;
+  }, [totalIncomePerHour, dropsStats]);
+
+  // Добавляем состояние для отслеживания текущего дохода в реальном времени
+  const [currentIncome, setCurrentIncome] = useState(0);
+  const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
+  const incomePerSecond = totalIncome / 3600;
+
+  // Эффект для обновления текущего дохода каждую секунду
+  useEffect(() => {
+    const updateIncome = () => {
+      const now = Date.now();
+      const hourFraction = (now - lastUpdateTime) / 3600000; // Доля часа (в часах)
+      const newIncome = currentIncome + totalIncome * hourFraction;
+      setCurrentIncome(newIncome);
+      setLastUpdateTime(now);
+    };
+
+    const intervalId = setInterval(updateIncome, 1000);
+    return () => clearInterval(intervalId);
+  }, [currentIncome, totalIncome, lastUpdateTime]);
 
   const handleInviteFriends = () => {
     // Здесь будет логика приглашения друзей
@@ -43,14 +107,66 @@ const Home: React.FC = () => {
     navigate('/drops');
   };
 
+  // Функция для сбора дохода от всех бизнесов
+  const handleCollectIncome = useCallback(async () => {
+    try {
+      if (currentIncome <= 0) return;
+      
+      // Используем метод collectBusinessIncome из API бизнесов
+      const result = await BusinessService.collectBusinessIncome();
+      
+      if (result && result.amount) {
+        const collectedAmount = Math.floor(currentIncome);
+        
+        setNotification({
+          show: true,
+          message: `Собрано ${collectedAmount.toLocaleString()} монет`,
+          type: 'success'
+        });
+        
+        // Обновляем баланс через setBalance
+        const newBalance = balance + collectedAmount;
+        setBalance(newBalance);
+        
+        // Сбрасываем текущий доход
+        setCurrentIncome(0);
+        
+        // Обновляем данные пользователя если доступно
+        if (user && updateUser) {
+          updateUser({ balance: newBalance });
+        }
+      } else {
+        setNotification({
+          show: true,
+          message: 'Не удалось собрать доход',
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Error collecting income:', error);
+      setNotification({
+        show: true,
+        message: 'Произошла ошибка',
+        type: 'error'
+      });
+    }
+  }, [currentIncome, balance, setBalance, user, updateUser]);
+
   return (
     <div className="home-page">
+      {/* Показываем уведомление, если оно активно */}
+      {notification.show && (
+        <div className={`notification notification--${notification.type}`}>
+          {notification.message}
+        </div>
+      )}
+      
       <div className="home-page__balance">
-        <h1>{balance.toFixed(2)}</h1>
-        <p>Ваш баланс</p>
+        <h1>{user && user.balance ? user.balance.toLocaleString() : balance.toLocaleString()}</h1>
+        <p>монет</p>
       </div>
       
-      <IncomeCounter incomePerHour={totalIncomePerHour} />
+      <IncomeCounter incomePerHour={totalIncome} />
       
       <div className="home-page__actions">
         <Button 

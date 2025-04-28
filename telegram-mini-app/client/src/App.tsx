@@ -11,8 +11,9 @@ import DropsPage from './pages/Drops';
 // Telegram utils
 import { enableBackButton, disableBackButton } from './utils/telegram';
 
-// Game Context
+// Context Providers
 import { GameProvider } from './context/GameContext';
+import { AuthProvider } from './context/AuthContext';
 
 // Импорт Telegram WebApp API
 declare global {
@@ -150,22 +151,24 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <GameProvider>
-      <Router>
-        <NavigationManager />
-        <Routes>
-          <Route path="/" element={<SplashScreen />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/business" element={<BusinessPage />} />
-          <Route path="/drops" element={<DropsPage />} />
-          <Route path="/darknet" element={<div className="placeholder-page">Даркнет (в разработке)</div>} />
-          <Route path="/shop" element={<div className="placeholder-page">Магазин (в разработке)</div>} />
-          <Route path="/profile" element={<div className="placeholder-page">Профиль (в разработке)</div>} />
-          <Route path="/rating" element={<div className="placeholder-page">Рейтинг (в разработке)</div>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
-    </GameProvider>
+    <AuthProvider>
+      <GameProvider>
+        <Router>
+          <NavigationManager />
+          <Routes>
+            <Route path="/" element={<SplashScreen />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/business" element={<BusinessPage />} />
+            <Route path="/drops" element={<DropsPage />} />
+            <Route path="/darknet" element={<div className="placeholder-page">Даркнет (в разработке)</div>} />
+            <Route path="/shop" element={<div className="placeholder-page">Магазин (в разработке)</div>} />
+            <Route path="/profile" element={<div className="placeholder-page">Профиль (в разработке)</div>} />
+            <Route path="/rating" element={<div className="placeholder-page">Рейтинг (в разработке)</div>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+      </GameProvider>
+    </AuthProvider>
   );
 };
 
