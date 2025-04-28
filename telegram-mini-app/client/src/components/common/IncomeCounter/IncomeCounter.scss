@@ -1,0 +1,43 @@
+@import '../../../styles/variables.scss';
+
+.income-counter {
+  background-color: rgba($accent-color, 0.1);
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: $spacing-lg;
+
+  &__title {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    margin-bottom: $spacing-xs;
+  }
+
+  &__value {
+    font-size: $font-size-xl;
+    font-weight: 700;
+    color: $accent-color;
+    margin-bottom: $spacing-xs;
+    transition: all 0.3s ease;
+    animation: pulse 2s infinite;
+  }
+
+  &__rate {
+    font-size: $font-size-xs;
+    color: $text-secondary;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+} 
