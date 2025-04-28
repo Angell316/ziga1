@@ -1,0 +1,79 @@
+@import '../../styles/variables.scss';
+
+.available-business-card {
+  background-color: $secondary-color;
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+  box-shadow: $box-shadow-medium;
+  
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-sm;
+  }
+  
+  &__title {
+    font-size: $font-size-md;
+    margin: 0;
+    color: $text-color;
+  }
+  
+  &__type {
+    padding: $spacing-xs $spacing-sm;
+    font-size: $font-size-xs;
+    border-radius: $border-radius-sm;
+    font-weight: 600;
+    
+    &.legal {
+      background-color: rgba(0, 150, 136, 0.2);
+      color: #00BFA5;
+    }
+    
+    &.darknet {
+      background-color: rgba(244, 67, 54, 0.2);
+      color: #FF5252;
+    }
+  }
+  
+  &__description {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    margin-bottom: $spacing-md;
+    line-height: 1.4;
+  }
+  
+  &__details {
+    margin-bottom: $spacing-md;
+    background-color: rgba($primary-color, 0.3);
+    border-radius: $border-radius-sm;
+    padding: $spacing-sm;
+  }
+  
+  &__detail {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: $spacing-xs;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  
+  &__detail-label {
+    color: $text-secondary;
+    font-size: $font-size-sm;
+  }
+  
+  &__detail-value {
+    color: $text-color;
+    font-size: $font-size-sm;
+    font-weight: 600;
+  }
+  
+  &__actions {
+    display: flex;
+    justify-content: center;
+  }
+} 

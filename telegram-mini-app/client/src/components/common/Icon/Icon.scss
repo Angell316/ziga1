@@ -1,0 +1,29 @@
+@import '../../../styles/variables.scss';
+
+.icon {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  color: inherit;
+
+  svg {
+    width: 100%;
+    height: 100%;
+    fill: currentColor;
+  }
+
+  &--sm {
+    width: 18px;
+    height: 18px;
+  }
+
+  &--md {
+    width: 24px;
+    height: 24px;
+  }
+
+  &--lg {
+    width: 32px;
+    height: 32px;
+  }
+}

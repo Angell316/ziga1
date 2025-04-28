@@ -1,0 +1,83 @@
+@import './variables.scss';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: $font-family;
+  font-size: $font-size-md;
+  line-height: 1.5;
+  color: $text-color;
+  background-color: $primary-color;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+a {
+  color: $accent-color;
+  text-decoration: none;
+  transition: color $transition-fast;
+  
+  &:hover {
+    color: lighten($accent-color, 10%);
+  }
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* Скрываем полосу прокрутки, но сохраняем функциональность */
+::-webkit-scrollbar {
+  width: 0;
+  background: transparent;
+}
+
+/* Страницы в разработке */
+.placeholder-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  text-align: center;
+  padding: $spacing-lg;
+  color: $text-secondary;
+  font-size: $font-size-lg;
+  background-color: $primary-color;
+}
+
+/* Плавные переходы между страницами */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.page-transition-exit {
+  opacity: 1;
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transition: opacity 300ms;
+} 

@@ -1,0 +1,57 @@
+@import '../../styles/variables.scss';
+
+.splash-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100%;
+  background-color: $primary-color;
+  
+  .logo-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: fadeIn 1s ease;
+    
+    .logo {
+      margin-bottom: $spacing-xl;
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      
+      .eco {
+        color: $accent-color;
+        animation: pulse 2s infinite;
+      }
+      
+      .sim {
+        color: $text-color;
+      }
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 1;
+  }
+} 
